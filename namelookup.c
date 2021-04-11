@@ -16,7 +16,7 @@ void usage(void) {
     printf("-i \t: prints IP address from given name\n");
     printf("-n \t: prints name from given IP address\n");
     return; 
-}
+} 
 
 void getAddrInfo(char *name) {
     printf("In function getAddrInfo called with name [%s]\n", name);
@@ -62,22 +62,49 @@ void getAddrInfo(char *name) {
 }
 
 void getNameInfo(char *address) {
-    printf("In function getNameInfo called with name [%s]\n", address);
+    printf("In function getNameInfo called\n");
+    char host[NI_MAXHOST];
+    char serv[NI_MAXSERV];
+    char ip_addr[INET_ADDRSTRLEN];
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    int err_code;
+    if((err_code = inet_pton(AF_INET, address, &addr.sin_addr)) != 1)
+    {
+        fprintf(stderr, "inet_pton failed: %s\n", strerror(err_code));
+        exit(EXIT_FAILURE);
+    }
+    if(inet_ntop(AF_INET, &addr.sin_addr, ip_addr, INET6_ADDRSTRLEN) == NULL)
+    {
+        perror("inet_ntop failed:");
+        exit(EXIT_FAILURE);
+    }
+    fprintf(stdout, "Input address: [%s]\n", ip_addr);
+    addr.sin_family = AF_INET;
+    int ret = getnameinfo((struct sockaddr *)&addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
+    if(ret != 0)
+    {
+        fprintf(stderr, "getnameinfo failed: [%s]\n", gai_strerror(ret));
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Address: [%s]\tHost: [%s]\n", address, host);
 
     return;
 }
 
+
 int main(int argc, char **argv) {
     int c;
     int index;
-    char host[HOST_NAME_MAX];
+    char host[NI_MAXHOST];
     char address[INET6_ADDRSTRLEN];
     while((c = getopt(argc, argv, ":i:n:")) != -1) {
         switch(c)
         {
             case 'i' : 
-                //strncpy(host, optarg, HOST_NAME_MAX);
-                memcpy(host, optarg, HOST_NAME_MAX);
+                //strncpy(host, optarg, NI_MAXHOST);
+                memcpy(host, optarg, NI_MAXHOST);
                 getAddrInfo(optarg);
                 break;
             case 'n' : 
