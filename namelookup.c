@@ -40,11 +40,21 @@ void getAddrInfo(char *name) {
     for(; rp != NULL; rp = rp->ai_next) {
         //printf("rp->ai_family %d\n", rp->ai_family);
         memset(address, 0, INET6_ADDRSTRLEN);
-        if(rp->ai_family == AF_INET) {
-            if(!inet_ntop(rp->ai_family, rp->ai_addr->sa_data, address, INET6_ADDRSTRLEN)) {
+        if(rp->ai_family == AF_INET)
+        {
+            if(!inet_ntop(rp->ai_family, &((struct sockaddr_in *)rp->ai_addr)->sin_addr, address, INET_ADDRSTRLEN)) {
                 fprintf(stderr, "inet_ntop failed\n");
             }
-            printf("Address:\t[%s]\n", address);
+            else 
+                printf("Address:\t[%s]\n", address);
+        }
+        else if(rp->ai_family == AF_INET6)
+        {
+            if(!inet_ntop(rp->ai_family, &((struct sockaddr_in6 *)rp->ai_addr)->sin6_addr, address, INET6_ADDRSTRLEN)) {
+                fprintf(stderr, "inet_ntop failed\n");
+            }
+            else
+                printf("Address:\t[%s]\n", address);
         }
     }
     freeaddrinfo(res);
