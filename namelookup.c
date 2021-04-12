@@ -65,10 +65,30 @@ void getNameInfo(char *address) {
     printf("In function getNameInfo called\n");
     char host[NI_MAXHOST];
     char serv[NI_MAXSERV];
-    char ip_addr[INET_ADDRSTRLEN];
+    char ip_addr[INET6_ADDRSTRLEN];
+
+#if 0
     struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
+    memset(&addr, \0, sizeof(addr));
+#endif
+
+    struct addrinfo *host_addr;
+    socklen_t host_addr_len;
+    struct addrinfo hints; 
+    memset(&hints, 0x00, sizeof(hints)); //Updating other fields in hints to 0
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags |= AI_NUMERICHOST | AI_CANONNAME;
+    
     int err_code;
+    err_code = getaddrinfo(address, NULL, &hints, &host_addr);
+    if(err_code != 0)
+    {
+        fprintf(stderr, "getaddrinfo failed: [%s]\n", gai_strerror(err_code));
+        exit(EXIT_FAILURE);
+    }
+
+#if 0
     if((err_code = inet_pton(AF_INET, address, &addr.sin_addr)) != 1)
     {
         fprintf(stderr, "inet_pton failed: %s\n", strerror(err_code));
@@ -81,14 +101,36 @@ void getNameInfo(char *address) {
     }
     fprintf(stdout, "Input address: [%s]\n", ip_addr);
     addr.sin_family = AF_INET;
-    int ret = getnameinfo((struct sockaddr *)&addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
+#endif
+
+    (host_addr->ai_family == AF_INET6)? host_addr_len = sizeof(struct sockaddr_in6) \
+                           : (host_addr->ai_family == AF_INET)? host_addr_len = sizeof(struct sockaddr_in): 0;
+    if(host_addr->ai_family == AF_INET6) 
+    {
+        if(inet_ntop(host_addr->ai_family, &(((struct sockaddr_in6 *)host_addr->ai_addr)->sin6_addr), ip_addr, INET6_ADDRSTRLEN) == NULL)
+        {
+            perror("inet_ntop failed:");
+            exit(EXIT_FAILURE);
+        }
+        printf("Got address [%s]\n", ip_addr);
+    }
+    else if(host_addr->ai_family == AF_INET) 
+    {
+        if(inet_ntop(host_addr->ai_family, &(((struct sockaddr_in *)host_addr->ai_addr)->sin_addr), ip_addr, INET_ADDRSTRLEN) == NULL)
+        {
+            perror("inet_ntop failed:");
+            exit(EXIT_FAILURE);
+        }
+        printf("Got address [%s]\n", ip_addr);
+    }
+    int ret = getnameinfo((struct sockaddr *)host_addr->ai_addr, host_addr_len, host, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
     if(ret != 0)
     {
         fprintf(stderr, "getnameinfo failed: [%s]\n", gai_strerror(ret));
         exit(EXIT_FAILURE);
     }
 
-    printf("Address: [%s]\tHost: [%s]\n", address, host);
+    printf("Host: [%s]\n", host);
 
     return;
 }
